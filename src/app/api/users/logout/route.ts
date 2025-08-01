@@ -13,8 +13,11 @@ export async function GET() {
         { httpOnly: true, expires: new Date(0) 
         });
         return response;
-    } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
-    }
+    } catch (error: unknown) {
+  if (error instanceof Error) {
+    console.error(error.message);
+  }
+  return NextResponse.json({ error: 'Something went wrong' }, { status: 500 });
+}
         
     }
