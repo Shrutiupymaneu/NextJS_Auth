@@ -1,33 +1,52 @@
-import nodemailer from 'nodemailer';
+import nodemailer from "nodemailer";
+import User from "@/models/userModel";
+import bcryptjs from "bcryptjs";
 
-interface SendEmailProps {
-  email: string;
-  emailType: 'VERIFY' | 'RESET';
-  userId: string;
-}
-
-export default async function sendEmail({ email, emailType, userId }: SendEmailProps) {
+export const sendEmail = async ({ email, emailType, userId }: any) => {
   try {
-    const transporter = nodemailer.createTransport({
-      service: 'Gmail',
+    // create a hased token
+    const hashedToken = await bcryptjs.hash(userId.toString(), 10);
+
+    if (emailType === "VERIFY") {
+      await User.findByIdAndUpdate(userId, {
+        verifyToken: hashedToken,
+        verifyTokenExpiry: Date.now() + 3600000,
+      });
+    } else if (emailType === "RESET") {
+      await User.findByIdAndUpdate(userId, {
+        forgotPasswordToken: hashedToken,
+        forgotPasswordTokenExpiry: Date.now() + 3600000,
+      });
+    }
+
+    var transport = nodemailer.createTransport({
+      host: "sandbox.smtp.mailtrap.io",
+      port: 2525,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: "920170e2801b0e",
+        pass: "953f733e27e3f4",
       },
     });
 
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: "supmaneu@gmail.com",
       to: email,
-      subject: emailType === 'VERIFY' ? 'Verify your email' : 'Reset your password',
-      html: `<p>Link here for ${emailType}</p>`,
+      subject:
+        emailType === "VERIFY" ? "Verify your email" : "Reset your password",
+      html: `<p>Click <a href="${
+        process.env.DOMAIN
+      }/verifyemail?token=${hashedToken}">here</a> to ${
+        emailType === "VERIFY" ? "verify your email" : "reset your password"
+      }
+            or copy and paste the link below in your browser. <br> ${
+              process.env.DOMAIN
+            }/verifyemail?token=${hashedToken}
+            </p>`,
     };
 
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent:', info.messageId);
-    return info;
-  } catch (error) {
-    console.error('Email send failed:', error);
-    throw new Error('Email send failed');
+    const mailresponse = await transport.sendMail(mailOptions);
+    return mailresponse;
+  } catch (error: any) {
+    throw new Error(error.message);
   }
-}
+};
