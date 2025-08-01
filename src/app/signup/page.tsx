@@ -8,49 +8,31 @@ import { toast } from "react-hot-toast";
 
 export default function SignupPage() {
   const router = useRouter();
-  const [user, setUser] = useState({
-    email: "",
-    password: "",
-    username: "",
-  });
+  const [user, setUser] = useState({ username: "", email: "", password: "" });
   const [buttonDisabled, setButtonDisabled] = useState(true);
   const [loading, setLoading] = useState(false);
 
   const onSignup = async () => {
     try {
       setLoading(true);
-      const response = await axios.post("/api/users/signup", user);
-      console.log("Signup success", response.data);
+      await axios.post("/api/users/signup", user);
+      toast.success("Signup success");
       router.push("/login");
-    } catch (error) {
-      if (error instanceof Error) {
-        console.log("Signup failed", error.message);
-        toast.error(error.message);
-      } else {
-        toast.error("An unexpected error occurred");
-      }
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    if (
-      user.email.length > 0 &&
-      user.password.length > 0 &&
-      user.username.length > 0
-    ) {
-      setButtonDisabled(false);
-    } else {
-      setButtonDisabled(true);
-    }
+    setButtonDisabled(!(user.username && user.email && user.password));
   }, [user]);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen py-2">
       <h1>{loading ? "Processing" : "Signup"}</h1>
-      <hr />
-
       <label htmlFor="username">Username</label>
       <input
         className="p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-gray-600 text-black"
@@ -58,9 +40,8 @@ export default function SignupPage() {
         type="text"
         value={user.username}
         onChange={(e) => setUser({ ...user, username: e.target.value })}
-        placeholder="Username"
+        placeholder="username"
       />
-
       <label htmlFor="email">Email</label>
       <input
         className="p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-gray-600 text-black"
@@ -68,9 +49,8 @@ export default function SignupPage() {
         type="email"
         value={user.email}
         onChange={(e) => setUser({ ...user, email: e.target.value })}
-        placeholder="Email"
+        placeholder="email"
       />
-
       <label htmlFor="password">Password</label>
       <input
         className="p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-gray-600 text-black"
@@ -78,18 +58,16 @@ export default function SignupPage() {
         type="password"
         value={user.password}
         onChange={(e) => setUser({ ...user, password: e.target.value })}
-        placeholder="Password"
+        placeholder="password"
       />
-
       <button
         onClick={onSignup}
         disabled={buttonDisabled}
         className="p-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:border-gray-600"
       >
-        {buttonDisabled ? "Fill all fields" : "Signup"}
+        Signup
       </button>
-
-      <Link href="/login">Visit Login Page</Link>
+      <Link href="/login">Go to Login</Link>
     </div>
   );
 }
