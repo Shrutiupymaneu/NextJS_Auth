@@ -1,33 +1,34 @@
-import { getDataFromToken } from "@/helpers/getDataFromToken";
-import { NextRequest, NextResponse } from "next/server";
-import User from "@/models/userModel";
-import { connect } from "@/dbConfig/dbConfig";
+import { NextRequest, NextResponse } from 'next/server';
+import jwt from 'jsonwebtoken';
+import { connect } from '@/dbConfig/dbConfig';
+import User from '@/models/userModel';
 
-// Connect to the database
 connect();
 
 export async function GET(request: NextRequest) {
-    try {
-        // Extract user ID from token
-        const userId = await getDataFromToken(request);
+  try {
+    const token = request.cookies.get('token')?.value;
 
-        // Find user by ID and exclude password
-        const user = await User.findOne({ _id: userId }).select("-password");
-
-        if (!user) {
-            return NextResponse.json({ error: "User not found" }, { status: 404 });
-        }
-
-        return NextResponse.json({
-            message: "User found",
-            data: user,
-        });
-
-    } catch (error: any) {
-        console.error("User fetch error:", error);
-        return NextResponse.json(
-            { error: error.message || "Failed to fetch user" },
-            { status: 400 }
-        );
+    if (!token) {
+      return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET as string
+    ) as { id: string; email: string };
+
+    const user = await User.findById(decoded.id).select('-password');
+
+    return NextResponse.json({
+      message: 'User found',
+      data: user,
+    });
+  } catch (error: unknown) {
+    console.error('Me API error:', error);
+    return NextResponse.json(
+      { message: 'Server error', error: (error as Error).message },
+      { status: 500 }
+    );
+  }
 }
